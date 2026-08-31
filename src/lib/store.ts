@@ -48,7 +48,7 @@ const defaultData: StoreData = {
   searchHistory: [],
 };
 
-const getStorePath = () => path.join(process.cwd(), 'data.json');
+const getStorePath = () => process.env.DATA_FILE_PATH || path.join(process.cwd(), 'data.json');
 
 export function getStore(): StoreData {
   const storePath = getStorePath();
