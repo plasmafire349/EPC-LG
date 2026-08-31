@@ -136,7 +136,7 @@ export class TavilySearchProvider implements SearchProvider {
         const uniqueQueries = Array.from(new Set(queries));
         const allResultsMap = new Map<string, any>();
 
-        for (const q of uniqueQueries) {
+        const promises = uniqueQueries.map(async (q) => {
             try {
                 const res = await fetch('https://api.tavily.com/search', {
                     method: 'POST',
@@ -152,7 +152,7 @@ export class TavilySearchProvider implements SearchProvider {
                 
                 if (!res.ok) {
                     console.error(`Tavily search returned status ${res.status} for query: ${q}`);
-                    continue;
+                    return;
                 }
 
                 const data = await res.json();
@@ -180,7 +180,9 @@ export class TavilySearchProvider implements SearchProvider {
             } catch (err) {
                 console.error(`Tavily search failed for query: ${q}`, err);
             }
-        }
+        });
+
+        await Promise.allSettled(promises);
 
         if (allResultsMap.size === 0) return [];
 
@@ -234,7 +236,7 @@ export class SerperSearchProvider implements SearchProvider {
         const uniqueQueries = Array.from(new Set(queries));
         const allResultsMap = new Map<string, any>();
 
-        for (const q of uniqueQueries) {
+        const promises = uniqueQueries.map(async (q) => {
             try {
                 const res = await fetch('https://google.serper.dev/search', {
                     method: 'POST',
@@ -247,7 +249,7 @@ export class SerperSearchProvider implements SearchProvider {
                 
                 if (!res.ok) {
                     console.error(`Serper search returned status ${res.status} for query: ${q}`);
-                    continue;
+                    return;
                 }
 
                 const data = await res.json();
@@ -275,7 +277,9 @@ export class SerperSearchProvider implements SearchProvider {
             } catch (err) {
                 console.error(`Serper search failed for query: ${q}`, err);
             }
-        }
+        });
+
+        await Promise.allSettled(promises);
 
         if (allResultsMap.size === 0) return [];
 
