@@ -1,41 +1,84 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { resultInfo } = body;
+        const { resultInfo, modifier } = body;
 
-        // In a real application, you would call OpenAI API here.
-        // For example:
-        /*
-        const response = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-                { role: "system", content: "You are an AI assistant helping a business development professional respond to a LinkedIn post. The user wants three options: Professional, Business Development, and Short. Do not invent facts." },
-                { role: "user", content: `Here is the post info: ${JSON.stringify(resultInfo)}` }
-            ]
-        });
-        */
+        const apiKey = process.env.GEMINI_API_KEY;
+        const modelName = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
-        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            // Simulated response when no API key is present
             return NextResponse.json({
-                professional: "Congratulations on the project milestone. This looks like an excellent initiative for the region.",
-                businessDevelopment: "Interesting development. We would be pleased to explore how our expertise could support this project's success.",
-                short: "Congratulations on this exciting news!"
-            });
+                error: 'AI Assistant unavailable',
+                message: 'Add GEMINI_API_KEY to enable response generation.'
+            }, { status: 503 });
         }
 
-        // Mock response if API key is present but we don't want to actually call it in this demo
-        return NextResponse.json({
-            professional: `Congratulations to the team on this ${resultInfo.type || 'project'} milestone. This is a great step forward for ${resultInfo.country || 'the region'}.`,
-            businessDevelopment: `Interesting development at ${resultInfo.company || 'your company'}. We at EPC LG would be pleased to explore how our EPC expertise could support this initiative.`,
-            short: "Congratulations on this exciting news!"
+        const ai = new GoogleGenAI({ apiKey });
+
+        const systemInstruction = `You are an EPC business-development communication assistant.
+Help an EPC professional write an appropriate response to a publicly visible LinkedIn post.
+You are NOT responsible for determining whether the post is relevant.
+Do not calculate the EPC relevance score.
+Do not invent project facts, company information, people, dates, values, contracts, or project stages.
+Only use facts provided in the supplied result.
+If information is limited, write a general response that does not assume missing facts.
+The response should sound natural and professional on LinkedIn.
+Avoid generic AI language.
+Avoid excessive sales language.
+Avoid spam.`;
+
+        let prompt = `Here is the LinkedIn post information:
+Title: ${resultInfo.title}
+Snippet: ${resultInfo.snippet}
+URL: ${resultInfo.url}
+Date: ${resultInfo.date || 'Not available'}
+Source: ${resultInfo.source}
+Matching Keywords: ${resultInfo.matchingKeywords}
+Search Query: ${resultInfo.searchQueries?.join(', ') || ''}
+
+Generate exactly three responses based on this post:
+1. Professional: A credible professional LinkedIn response.
+2. Business Development: A subtle response that could naturally open a commercial conversation without sounding like spam.
+3. Short: A concise, natural LinkedIn response.`;
+
+        if (modifier) {
+             prompt += `\n\nApply the following instruction to modify the generation: ${modifier}.`;
+        }
+
+        const response = await ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: {
+                systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        professional: { type: "STRING" },
+                        businessDevelopment: { type: "STRING" },
+                        short: { type: "STRING" }
+                    },
+                    required: ["professional", "businessDevelopment", "short"]
+                }
+            }
         });
+
+        const text = typeof response.text === 'function' ? response.text() : (response.text || response.candidates?.[0]?.content?.parts?.[0]?.text);
+        if (!text) {
+             throw new Error("Empty response from Gemini");
+        }
+        const data = JSON.parse(text);
+
+        return NextResponse.json(data);
         
     } catch (error) {
-        console.error('AI error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        console.error('Gemini error:', error);
+        return NextResponse.json({ 
+            error: 'Gemini request failed',
+            message: 'Please try again.'
+        }, { status: 500 });
     }
 }

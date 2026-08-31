@@ -110,11 +110,265 @@ export class DemoSearchProvider implements SearchProvider {
     }
 }
 
+/**
+ * AlternativeSearchProvider:
+ * Free-tier live web search provider that does NOT require Google Cloud Billing or credit cards.
+ * Supports Serper.dev (Google SERP API, 2,500 free queries, no payment method required)
+ * and Tavily API (1,000 free monthly queries, no payment method required).
+ */
+export class AlternativeSearchProvider implements SearchProvider {
+    async search(query: string, country: string, industry: string) {
+        const serperKey = process.env.SERPER_API_KEY;
+        const tavilyKey = process.env.TAVILY_API_KEY;
+
+        const queries = [
+            `site:linkedin.com/posts EPC ${country} ${industry}`,
+            `site:linkedin.com/posts "EPC project" ${country} ${industry}`,
+            `site:linkedin.com/posts "EPC contract" ${country}`,
+            `site:linkedin.com/posts tender EPC ${country}`,
+            `site:linkedin.com/posts FEED ${country} ${industry}`,
+            `site:linkedin.com/posts procurement ${country} ${industry}`,
+            `site:linkedin.com/posts hydrogen ${country} EPC`,
+            `site:linkedin.com/posts battery ${country} EPC`,
+            `site:linkedin.com/posts renewable energy ${country} EPC`,
+            `site:linkedin.com/posts nuclear ${country} project`,
+            `site:linkedin.com/posts ${query} ${country} ${industry}`
+        ];
+
+        const uniqueQueries = Array.from(new Set(queries));
+        const allResultsMap = new Map<string, any>();
+
+        if (serperKey) {
+            // Serper.dev - Direct Google SERP API (Free tier, no card required)
+            for (const q of uniqueQueries) {
+                try {
+                    const res = await fetch('https://google.serper.dev/search', {
+                        method: 'POST',
+                        headers: {
+                            'X-API-KEY': serperKey,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ q, num: 10 })
+                    });
+                    const data = await res.json();
+                    if (data.organic) {
+                        for (const item of data.organic) {
+                            if (!allResultsMap.has(item.link)) {
+                                allResultsMap.set(item.link, {
+                                    title: item.title || 'LinkedIn Post',
+                                    url: item.link,
+                                    snippet: item.snippet || '',
+                                    date: item.date || 'Not available',
+                                    author: 'Not available',
+                                    company: 'Not available',
+                                    source: 'LinkedIn via Serper (Google)',
+                                    queriesMatched: [q]
+                                });
+                            } else {
+                                const existing = allResultsMap.get(item.link);
+                                if (!existing.queriesMatched.includes(q)) {
+                                    existing.queriesMatched.push(q);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Serper search failed for query: ${q}`, err);
+                }
+            }
+        } else if (tavilyKey) {
+            // Tavily Search API (Free tier, no card required)
+            for (const q of uniqueQueries) {
+                try {
+                    const res = await fetch('https://api.tavily.com/search', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            api_key: tavilyKey,
+                            query: q,
+                            include_domains: ['linkedin.com'],
+                            search_depth: 'basic'
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.results) {
+                        for (const item of data.results) {
+                            if (!allResultsMap.has(item.url)) {
+                                allResultsMap.set(item.url, {
+                                    title: item.title || 'LinkedIn Post',
+                                    url: item.url,
+                                    snippet: item.content || '',
+                                    date: 'Not available',
+                                    author: 'Not available',
+                                    company: 'Not available',
+                                    source: 'LinkedIn via Tavily',
+                                    queriesMatched: [q]
+                                });
+                            } else {
+                                const existing = allResultsMap.get(item.url);
+                                if (!existing.queriesMatched.includes(q)) {
+                                    existing.queriesMatched.push(q);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Tavily search failed for query: ${q}`, err);
+                }
+            }
+        }
+
+        if (allResultsMap.size === 0) {
+            return [];
+        }
+
+        const formattedResults: Omit<SearchResult, 'id' | 'searchId' | 'createdAt'>[] = [];
+        for (const [link, item] of allResultsMap.entries()) {
+            const textToScore = `${item.title} ${item.snippet}`;
+            const { score, matchingKeywords, type } = calculateRelevance(textToScore, country, industry);
+            formattedResults.push({
+                title: item.title,
+                url: item.url,
+                snippet: item.snippet,
+                date: item.date,
+                author: item.author,
+                company: item.company,
+                source: item.source,
+                matchingKeywords: matchingKeywords.join(' · '),
+                relevanceScore: score,
+                resultType: type,
+                isDemo: false,
+                searchQueries: item.queriesMatched
+            });
+        }
+
+        return formattedResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    }
+}
+
 export class GoogleSearchProvider implements SearchProvider {
     async search(query: string, country: string, industry: string) {
-        // In a real app, this would call Google Custom Search API
-        // For MVP without API keys, we'll fall back to DemoSearchProvider or mock
-        console.log('GoogleSearchProvider called. Falling back to Demo for safety/lack of API key.');
-        return new DemoSearchProvider().search(query, country, industry);
+        const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
+        const cx = process.env.GOOGLE_SEARCH_ENGINE_ID;
+
+        if (!apiKey || !cx) {
+            return [];
+        }
+
+        const queries = [
+            `site:linkedin.com/posts EPC ${country} ${industry}`,
+            `site:linkedin.com/posts "EPC project" ${country} ${industry}`,
+            `site:linkedin.com/posts "EPC contract" ${country}`,
+            `site:linkedin.com/posts tender EPC ${country}`,
+            `site:linkedin.com/posts FEED ${country} ${industry}`,
+            `site:linkedin.com/posts procurement ${country} ${industry}`,
+            `site:linkedin.com/posts hydrogen ${country} EPC`,
+            `site:linkedin.com/posts battery ${country} EPC`,
+            `site:linkedin.com/posts renewable energy ${country} EPC`,
+            `site:linkedin.com/posts nuclear ${country} project`,
+            `site:linkedin.com/posts ${query} ${country} ${industry}`
+        ];
+
+        const uniqueQueries = Array.from(new Set(queries));
+        const allResultsMap = new Map<string, any>();
+
+        for (const q of uniqueQueries) {
+            try {
+                const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+                searchUrl.searchParams.append('key', apiKey);
+                searchUrl.searchParams.append('cx', cx);
+                searchUrl.searchParams.append('q', q);
+                searchUrl.searchParams.append('num', '5');
+
+                const res = await fetch(searchUrl.toString());
+                const data = await res.json();
+
+                if (data.error) {
+                    console.error(`Google API error for query: ${q}`, data.error);
+                }
+
+                if (data.items) {
+                    for (const item of data.items) {
+                        if (!allResultsMap.has(item.link)) {
+                            allResultsMap.set(item.link, {
+                                title: item.title,
+                                url: item.link,
+                                snippet: item.snippet || '',
+                                date: 'Not available',
+                                author: 'Not available',
+                                company: 'Not available',
+                                source: 'LinkedIn via Google',
+                                queriesMatched: [q]
+                            });
+                        } else {
+                            const existing = allResultsMap.get(item.link);
+                            if (!existing.queriesMatched.includes(q)) {
+                                existing.queriesMatched.push(q);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error(`Google search failed for query: ${q}`, err);
+            }
+        }
+
+        const formattedResults: Omit<SearchResult, 'id' | 'searchId' | 'createdAt'>[] = [];
+
+        for (const [link, item] of allResultsMap.entries()) {
+            const textToScore = `${item.title} ${item.snippet}`;
+            const { score, matchingKeywords, type } = calculateRelevance(textToScore, country, industry);
+            
+            formattedResults.push({
+                title: item.title,
+                url: item.url,
+                snippet: item.snippet,
+                date: item.date,
+                author: item.author,
+                company: item.company,
+                source: item.source,
+                matchingKeywords: matchingKeywords.join(' · '),
+                relevanceScore: score,
+                resultType: type,
+                isDemo: false,
+                searchQueries: item.queriesMatched
+            });
+        }
+
+        return formattedResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
     }
+}
+
+/**
+ * Automatically chooses:
+ * 1. Alternative live search if configured (Serper / Tavily - free tiers without billing/card)
+ * 2. Google Custom Search if configured
+ * 3. Demo Mode as final fallback
+ */
+export async function executeSearch(query: string, country: string, industry: string): Promise<{ results: Omit<SearchResult, 'id' | 'searchId' | 'createdAt'>[], providerUsed: string }> {
+    // 1. Try Alternative Live Search (Serper / Tavily)
+    if (process.env.SERPER_API_KEY || process.env.TAVILY_API_KEY) {
+        console.log('Using Alternative Live Search Provider...');
+        const altProvider = new AlternativeSearchProvider();
+        const results = await altProvider.search(query, country, industry);
+        if (results.length > 0) {
+            return { results, providerUsed: 'Alternative Live Search' };
+        }
+    }
+
+    // 2. Try Google Custom Search Provider
+    if (process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
+        console.log('Attempting Google Custom Search Provider...');
+        const googleProvider = new GoogleSearchProvider();
+        const results = await googleProvider.search(query, country, industry);
+        if (results.length > 0) {
+            return { results, providerUsed: 'Google Custom Search' };
+        }
+    }
+
+    // 3. Fallback to DemoSearchProvider
+    console.log('Falling back to DemoSearchProvider...');
+    const demoProvider = new DemoSearchProvider();
+    const results = await demoProvider.search(query, country, industry);
+    return { results, providerUsed: 'Demo Mode' };
 }

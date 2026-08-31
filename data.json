@@ -1,0 +1,135 @@
+{
+  "searchResults": [
+    {
+      "title": "New €500M Hydrogen Plant EPC Contract Awarded in Finland",
+      "url": "https://linkedin.com/posts/demo-1",
+      "snippet": "We are thrilled to announce that we have been selected as the main EPC contractor for the new green hydrogen facility in Oulu, Finland. The project includes full FEED and construction.",
+      "date": "2023-10-15",
+      "author": "Jane Doe",
+      "company": "Demo EPC Corp",
+      "source": "LinkedIn",
+      "matchingKeywords": "EPC · Project · Finland · Contract · Award · FEED · Construction",
+      "relevanceScore": 80,
+      "resultType": "Project award",
+      "isDemo": true,
+      "id": "grfr1",
+      "searchId": "d7pjrh",
+      "createdAt": "2026-08-31T12:26:02.724Z"
+    },
+    {
+      "title": "Upcoming Offshore Wind Tender - Finland",
+      "url": "https://linkedin.com/posts/demo-2",
+      "snippet": "The Finnish government is preparing the RFP for the new offshore wind farm. We expect strong competition among European EPC contractors. #renewable #energy",
+      "date": "2023-11-02",
+      "author": "John Smith",
+      "company": "Wind Energy Insights",
+      "source": "LinkedIn",
+      "matchingKeywords": "EPC · Finland · Energy · Tender · RFP · Contract",
+      "relevanceScore": 75,
+      "resultType": "Tender / RFP",
+      "isDemo": true,
+      "id": "5intnol",
+      "searchId": "d7pjrh",
+      "createdAt": "2026-08-31T12:26:02.726Z"
+    },
+    {
+      "title": "Battery Manufacturing Plant - Construction Start",
+      "url": "https://linkedin.com/posts/demo-3",
+      "snippet": "Construction has officially started on the new battery plant in Vaasa, Finland. Great effort by the engineering and procurement teams to get this CAPEX project off the ground.",
+      "date": "Not available",
+      "author": "Not available",
+      "company": "Battery Tech Ltd",
+      "source": "LinkedIn",
+      "matchingKeywords": "Project · Finland · Procurement · Construction · CAPEX",
+      "relevanceScore": 40,
+      "resultType": "Construction",
+      "isDemo": true,
+      "id": "58q9sw",
+      "searchId": "d7pjrh",
+      "createdAt": "2026-08-31T12:26:02.726Z"
+    },
+    {
+      "title": "New €500M Hydrogen Plant EPC Contract Awarded in Finland",
+      "url": "https://linkedin.com/posts/demo-1",
+      "snippet": "We are thrilled to announce that we have been selected as the main EPC contractor for the new green hydrogen facility in Oulu, Finland. The project includes full FEED and construction.",
+      "date": "2023-10-15",
+      "author": "Jane Doe",
+      "company": "Demo EPC Corp",
+      "source": "LinkedIn",
+      "matchingKeywords": "EPC · Project · Finland · Contract · Award · FEED · Construction",
+      "relevanceScore": 80,
+      "resultType": "Project award",
+      "isDemo": true,
+      "id": "buggpb",
+      "searchId": "90oegb",
+      "createdAt": "2026-08-31T12:40:42.972Z"
+    },
+    {
+      "title": "Upcoming Offshore Wind Tender - Finland",
+      "url": "https://linkedin.com/posts/demo-2",
+      "snippet": "The Finnish government is preparing the RFP for the new offshore wind farm. We expect strong competition among European EPC contractors. #renewable #energy",
+      "date": "2023-11-02",
+      "author": "John Smith",
+      "company": "Wind Energy Insights",
+      "source": "LinkedIn",
+      "matchingKeywords": "EPC · Finland · Energy · Tender · RFP · Contract",
+      "relevanceScore": 75,
+      "resultType": "Tender / RFP",
+      "isDemo": true,
+      "id": "wxvt1v",
+      "searchId": "90oegb",
+      "createdAt": "2026-08-31T12:40:42.975Z"
+    },
+    {
+      "title": "Battery Manufacturing Plant - Construction Start",
+      "url": "https://linkedin.com/posts/demo-3",
+      "snippet": "Construction has officially started on the new battery plant in Vaasa, Finland. Great effort by the engineering and procurement teams to get this CAPEX project off the ground.",
+      "date": "Not available",
+      "author": "Not available",
+      "company": "Battery Tech Ltd",
+      "source": "LinkedIn",
+      "matchingKeywords": "Project · Finland · Procurement · Construction · CAPEX",
+      "relevanceScore": 40,
+      "resultType": "Construction",
+      "isDemo": true,
+      "id": "azwdek",
+      "searchId": "90oegb",
+      "createdAt": "2026-08-31T12:40:42.975Z"
+    }
+  ],
+  "savedResults": [],
+  "searchHistory": [
+    {
+      "id": "o2n1tg",
+      "query": "EPC",
+      "country": "Finland",
+      "industry": "Energy",
+      "resultsCount": 3,
+      "createdAt": "2026-08-31T12:26:02.731Z"
+    },
+    {
+      "id": "rb0h2",
+      "query": "EPC",
+      "country": "Finland",
+      "industry": "Energy",
+      "resultsCount": 0,
+      "createdAt": "2026-08-31T12:28:05.600Z"
+    },
+    {
+      "id": "nkho3u",
+      "query": "EPC",
+      "country": "Finland",
+      "industry": "Energy",
+      "resultsCount": 0,
+      "createdAt": "2026-08-31T12:28:33.809Z"
+    },
+    {
+      "id": "y3dxmw",
+      "query": "EPC",
+      "country": "Finland",
+      "industry": "Energy",
+      "resultsCount": 3,
+      "createdAt": "2026-08-31T12:40:42.981Z"
+    }
+  ]
+}

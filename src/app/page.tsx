@@ -16,16 +16,24 @@ export default function Page() {
 
   const [minRelevance, setMinRelevance] = useState(0);
 
+  const [searchMode, setSearchMode] = useState<string | null>(null);
+
   const handleSearch = async () => {
     setLoading(true);
+    setSearchMode(null);
     try {
       const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, country, industry, useDemo: true })
+        body: JSON.stringify({ query, country, industry })
       });
       const data = await res.json();
       setResults(data.results);
+      if (data.results && data.results.length > 0) {
+          setSearchMode(data.results[0].isDemo ? 'Demo Mode' : (data.providerUsed || 'Live Search'));
+      } else {
+          setSearchMode(data.providerUsed || 'Demo Mode');
+      }
     } catch (e) {
       console.error(e);
     }
@@ -50,18 +58,19 @@ export default function Page() {
     setResults(results.filter(r => r.id !== id));
   };
 
-  const handleAskAi = async (result: any) => {
+  const handleAskAi = async (result: any, modifier?: string) => {
     setLoadingAi(result.id);
     try {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resultInfo: result })
+        body: JSON.stringify({ resultInfo: result, modifier })
       });
       const data = await res.json();
       setAiResponses({ ...aiResponses, [result.id]: data });
     } catch (e) {
       console.error(e);
+      setAiResponses({ ...aiResponses, [result.id]: { error: 'Gemini request failed', message: 'Try again.' } });
     }
     setLoadingAi(null);
   };
@@ -88,7 +97,14 @@ export default function Page() {
       <div className="flex-1 overflow-auto">
         {activeTab === 'search' && (
           <div className="p-8 max-w-5xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6">LinkedIn Signals</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold">LinkedIn Signals</h2>
+              {searchMode && (
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold tracking-wide ${searchMode === 'Demo Mode' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                  {searchMode}
+                </span>
+              )}
+            </div>
             
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -151,12 +167,20 @@ export default function Page() {
                       <div><strong className="text-slate-900">Date:</strong> {result.date || 'Not available'}</div>
                       <div><strong className="text-slate-900">Location:</strong> {country}</div>
                       <div><strong className="text-slate-900">Industry:</strong> {industry}</div>
+                      <div className="col-span-2"><strong className="text-slate-900">Source:</strong> {result.source || 'LinkedIn'}</div>
                     </div>
 
                     <div className="mb-4">
                       <strong className="block text-sm text-slate-900 mb-1">Matching keywords:</strong>
                       <div className="text-sm text-slate-600">{result.matchingKeywords || 'None'}</div>
                     </div>
+
+                    {result.searchQueries && result.searchQueries.length > 0 && (
+                      <div className="mb-4">
+                        <strong className="block text-sm text-slate-900 mb-1">Found via search queries:</strong>
+                        <div className="text-sm text-slate-600">{result.searchQueries.join(', ')}</div>
+                      </div>
+                    )}
 
                     <div className="bg-slate-50 p-4 rounded border border-slate-100 mb-6">
                       <strong className="block text-sm text-slate-900 mb-1">Google snippet:</strong>
@@ -190,38 +214,51 @@ export default function Page() {
                     {aiResponses[result.id] && (
                       <div className="mt-6 border-t border-slate-200 pt-6">
                         <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">AI Response Assistant</h4>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                          
-                          <div className="border border-slate-200 rounded-md p-4 flex flex-col">
-                            <h5 className="font-semibold text-slate-800 mb-2 border-b pb-2">Professional</h5>
-                            <p className="text-sm text-slate-700 mb-4 flex-1">{aiResponses[result.id].professional}</p>
-                            <button className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded w-full font-medium transition-colors" onClick={() => {navigator.clipboard.writeText(aiResponses[result.id].professional); alert('Copied!');}}>Copy</button>
+                        {aiResponses[result.id].error ? (
+                          <div className="bg-red-50 border border-red-200 rounded-md p-4 text-center">
+                            <p className="text-red-700 font-bold mb-1">{aiResponses[result.id].error}</p>
+                            <p className="text-red-600 text-sm mb-3">{aiResponses[result.id].message}</p>
+                            {aiResponses[result.id].error === 'Gemini request failed' && (
+                                <button onClick={() => handleAskAi(result)} className="text-xs bg-red-100 hover:bg-red-200 text-red-800 font-bold py-1.5 px-4 rounded transition-colors">
+                                    Try again
+                                </button>
+                            )}
                           </div>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                              <div className="border border-slate-200 rounded-md p-4 flex flex-col">
+                                <h5 className="font-semibold text-slate-800 mb-2 border-b pb-2">Professional</h5>
+                                <p className="text-sm text-slate-700 mb-4 flex-1">{aiResponses[result.id].professional}</p>
+                                <button className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded w-full font-medium transition-colors" onClick={() => {navigator.clipboard.writeText(aiResponses[result.id].professional); alert('Copied!');}}>Copy</button>
+                              </div>
 
-                          <div className="border border-slate-200 rounded-md p-4 flex flex-col">
-                            <h5 className="font-semibold text-slate-800 mb-2 border-b pb-2">Business Development</h5>
-                            <p className="text-sm text-slate-700 mb-4 flex-1">{aiResponses[result.id].businessDevelopment}</p>
-                            <button className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded w-full font-medium transition-colors" onClick={() => {navigator.clipboard.writeText(aiResponses[result.id].businessDevelopment); alert('Copied!');}}>Copy</button>
-                          </div>
+                              <div className="border border-slate-200 rounded-md p-4 flex flex-col">
+                                <h5 className="font-semibold text-slate-800 mb-2 border-b pb-2">Business Development</h5>
+                                <p className="text-sm text-slate-700 mb-4 flex-1">{aiResponses[result.id].businessDevelopment}</p>
+                                <button className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded w-full font-medium transition-colors" onClick={() => {navigator.clipboard.writeText(aiResponses[result.id].businessDevelopment); alert('Copied!');}}>Copy</button>
+                              </div>
 
-                          <div className="border border-slate-200 rounded-md p-4 flex flex-col">
-                            <h5 className="font-semibold text-slate-800 mb-2 border-b pb-2">Short</h5>
-                            <p className="text-sm text-slate-700 mb-4 flex-1">{aiResponses[result.id].short}</p>
-                            <button className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded w-full font-medium transition-colors" onClick={() => {navigator.clipboard.writeText(aiResponses[result.id].short); alert('Copied!');}}>Copy</button>
-                          </div>
-
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          <button className="text-xs text-blue-600 hover:underline">Regenerate</button>
-                          <span className="text-slate-300">•</span>
-                          <button className="text-xs text-blue-600 hover:underline">Make shorter</button>
-                          <span className="text-slate-300">•</span>
-                          <button className="text-xs text-blue-600 hover:underline">Make more professional</button>
-                          <span className="text-slate-300">•</span>
-                          <button className="text-xs text-blue-600 hover:underline">Make more conversational</button>
-                          <span className="text-slate-300">•</span>
-                          <button className="text-xs text-blue-600 hover:underline">Make less sales-focused</button>
-                        </div>
+                              <div className="border border-slate-200 rounded-md p-4 flex flex-col">
+                                <h5 className="font-semibold text-slate-800 mb-2 border-b pb-2">Short</h5>
+                                <p className="text-sm text-slate-700 mb-4 flex-1">{aiResponses[result.id].short}</p>
+                                <button className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded w-full font-medium transition-colors" onClick={() => {navigator.clipboard.writeText(aiResponses[result.id].short); alert('Copied!');}}>Copy</button>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mt-4 items-center">
+                              {loadingAi === result.id && <span className="text-xs text-slate-500 font-medium mr-2">Thinking...</span>}
+                              <button disabled={loadingAi === result.id} onClick={() => handleAskAi(result)} className="text-xs text-blue-600 hover:underline disabled:opacity-50 disabled:no-underline">Regenerate</button>
+                              <span className="text-slate-300">•</span>
+                              <button disabled={loadingAi === result.id} onClick={() => handleAskAi(result, "Make the responses shorter and more concise")} className="text-xs text-blue-600 hover:underline disabled:opacity-50 disabled:no-underline">Make shorter</button>
+                              <span className="text-slate-300">•</span>
+                              <button disabled={loadingAi === result.id} onClick={() => handleAskAi(result, "Make the responses more professional and formal")} className="text-xs text-blue-600 hover:underline disabled:opacity-50 disabled:no-underline">Make more professional</button>
+                              <span className="text-slate-300">•</span>
+                              <button disabled={loadingAi === result.id} onClick={() => handleAskAi(result, "Make the responses more conversational and friendly")} className="text-xs text-blue-600 hover:underline disabled:opacity-50 disabled:no-underline">Make more conversational</button>
+                              <span className="text-slate-300">•</span>
+                              <button disabled={loadingAi === result.id} onClick={() => handleAskAi(result, "Make the responses less sales-focused and more informative")} className="text-xs text-blue-600 hover:underline disabled:opacity-50 disabled:no-underline">Make less sales-focused</button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -263,8 +300,8 @@ export default function Page() {
                   <input type="password" placeholder="AI/Google APIs are kept server-side in .env" disabled className="w-full border border-slate-200 bg-slate-50 rounded-md p-2 text-sm text-slate-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">OpenAI API Key</label>
-                  <input type="password" placeholder="sk-..." disabled className="w-full border border-slate-200 bg-slate-50 rounded-md p-2 text-sm text-slate-500" />
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Gemini API Key</label>
+                  <input type="password" placeholder="AI/Google APIs are kept server-side in .env" disabled className="w-full border border-slate-200 bg-slate-50 rounded-md p-2 text-sm text-slate-500" />
                   <p className="text-xs text-slate-500 mt-1">Configure these in your .env file.</p>
                 </div>
               </div>

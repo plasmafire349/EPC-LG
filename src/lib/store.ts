@@ -15,6 +15,7 @@ export type SearchResult = {
   relevanceScore: number;
   resultType: string;
   isDemo: boolean;
+  searchQueries?: string[];
   createdAt: string;
 };
 

@@ -23,7 +23,7 @@ The application relies on a rule-based engine and Google Search API to discover 
    ```bash
    cp .env.example .env.local
    ```
-   - `OPENAI_API_KEY`: Used strictly for the AI Response Assistant feature.
+   - `GEMINI_API_KEY`: Used strictly for the AI Response Assistant feature.
    - `GOOGLE_SEARCH_API_KEY`: Used for fetching real LinkedIn search results (the app falls back to Demo mode if not configured).
 
 3. Start the development server:
@@ -48,6 +48,6 @@ The application relies on a rule-based engine and Google Search API to discover 
 ### What Remains for Production
 - **Actual Database**: Replace the in-memory JSON store (`src/lib/store.ts`) with PostgreSQL/Supabase.
 - **Google Search Integration**: Implement the actual `googleapiclient` call in `GoogleSearchProvider` using `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID`.
-- **OpenAI Integration**: Uncomment and connect the actual `openai` SDK call in `src/app/api/ai/route.ts`.
+- **Gemini Integration**: Connected using the official `@google/genai` SDK in `src/app/api/ai/route.ts`.
 - **Authentication**: Add NextAuth/Clerk for user login and protecting the dashboard.
 - **CRON Jobs**: Set up background workers to periodically run saved searches and trigger alerts.
