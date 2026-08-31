@@ -66,7 +66,7 @@ Generate exactly three responses based on this post:
             }
         });
 
-        const text = typeof response.text === 'function' ? response.text() : (response.text || response.candidates?.[0]?.content?.parts?.[0]?.text);
+        const text = response.text || response.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) {
              throw new Error("Empty response from Gemini");
         }
