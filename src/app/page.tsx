@@ -462,7 +462,9 @@ export default function Page() {
                                     <span className={`w-1.5 h-1.5 rounded-full ${stage.dot}`} />
                                     {stage.label}
                                   </span>
-                                  <span className="text-xs text-slate-400">{country} · {industry}</span>
+                                                                    <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1"><span className="text-[10px]">🌍</span> Project: {r.projectLocation || 'Unknown'}</span>
+                                  <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1"><span className="text-[10px]">🏢</span> Company: {r.companyLocation || 'Unknown'}</span>
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${r.confidence === 'High' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : r.confidence === 'Medium' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>{r.confidence || 'Low'} Confidence</span>
                                 </div>
                                 <h5 className="text-base font-semibold text-slate-900 group-hover:text-blue-700 transition-colors leading-snug line-clamp-2">{r.title}</h5>
                                 <p className="text-sm text-slate-500 mt-1 line-clamp-1">{getCommercialSignal(r)}</p>
@@ -622,7 +624,9 @@ export default function Page() {
                                     <span className={`w-1.5 h-1.5 rounded-full ${stage.dot}`} />
                                     {stage.label}
                                   </span>
-                                  <span className="text-xs text-slate-400">{country} · {industry}</span>
+                                                                    <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1"><span className="text-[10px]">🌍</span> Project: {result.projectLocation || 'Unknown'}</span>
+                                  <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1"><span className="text-[10px]">🏢</span> Company: {result.companyLocation || 'Unknown'}</span>
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${result.confidence === 'High' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : result.confidence === 'Medium' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>{result.confidence || 'Low'} Confidence</span>
                                   {isSaved && <span className="text-xs text-purple-600 font-medium">★ Saved</span>}
                                 </div>
                                 {/* Title */}
@@ -834,7 +838,10 @@ export default function Page() {
                                 <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md border ${stage.bg} ${stage.color} ${stage.border}`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${stage.dot}`} />{stage.label}
                                 </span>
-                                <span className="text-xs text-slate-400">Saved {new Date(saved.createdAt).toLocaleDateString()}</span>
+                                                                  <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1"><span className="text-[10px]">🌍</span> Project: {r.projectLocation || 'Unknown'}</span>
+                                  <span className="text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1"><span className="text-[10px]">🏢</span> Company: {r.companyLocation || 'Unknown'}</span>
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${r.confidence === 'High' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : r.confidence === 'Medium' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200'}`}>{r.confidence || 'Low'} Confidence</span>
+                                  <span className="text-xs text-slate-400 ml-auto">Saved {new Date(saved.createdAt).toLocaleDateString()}</span>
                               </div>
                               <h4 className="text-base font-semibold text-slate-900 leading-snug mb-1">{r.title}</h4>
                               <div className="mt-1">

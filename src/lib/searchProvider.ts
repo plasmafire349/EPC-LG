@@ -1,13 +1,73 @@
 import { SearchResult } from './store';
 
-const EPC_KEYWORDS = ['EPC', 'EPCM', 'Engineering Procurement Construction', 'FEED', 'engineering', 'procurement', 'construction', 'contractor', 'contract', 'tender', 'RFP', 'RFQ', 'project', 'project award', 'commissioning', 'CAPEX', 'investment', 'construction start'];
 
-const ENERGY_KEYWORDS = ['energy', 'renewable', 'wind', 'offshore wind', 'solar', 'hydrogen', 'Power-to-X', 'battery', 'battery plant', 'nuclear', 'bioenergy', 'grid', 'energy storage', 'district heating', 'waste-to-energy'];
+const MAJOR_COUNTRIES = ["USA","United States","America","UK","United Kingdom","Australia","Israel","Germany","France","Spain","Italy","Canada","Brazil","India","China","Japan","South Korea","Sweden","Norway","Denmark","Poland","Netherlands","Belgium","Switzerland","Austria","Saudi Arabia","UAE","United Arab Emirates","Qatar","Oman","Egypt","South Africa","Nigeria","Kenya","Mexico","Chile","Argentina","Colombia","Peru","Vietnam","Thailand","Malaysia","Indonesia","Philippines","Singapore","New Zealand","Ireland","Portugal","Greece","Turkey","Russia","Ukraine","Estonia","Latvia","Lithuania","Finland","Morocco"];
 
-export function calculateRelevance(text: string, country: string, industry: string): { score: number, matchingKeywords: string[], type: string } {
+export function cleanLinkedInText(text: string): string {
+    if (!text) return '';
+    let cleaned = text;
+
+    // Replace HTML entities
+    cleaned = cleaned.replace(/&#x20;/g, ' ')
+                     .replace(/&nbsp;/g, ' ')
+                     .replace(/&amp;/g, '&')
+                     .replace(/&quot;/g, '"')
+                     .replace(/&apos;/g, "'")
+                     .replace(/&lt;/g, '<')
+                     .replace(/&gt;/g, '>');
+
+    // Remove typical LinkedIn UI noise
+    const noisePatterns = [
+        /(\d+,?\d*)\s*(followers|following)/gi,
+        /Report this post/gi,
+        /Report this comment/gi,
+        /\bLike\b\s*·?\s*\bComment\b\s*·?\s*\bShare\b/gi,
+        /\bLike\b\s*·?\s*\bComment\b/gi,
+        /\bLike\b\s*·?\s*\bReply\b/gi,
+        /Sign in to view more/gi,
+        /Sign in to view/gi,
+        /\b\d+\s+comments?\b/gi,
+        /\b\d+\s+reactions?\b/gi,
+        /\b\d+\s+likes?\b/gi,
+        /\[…\]/g,
+        /\[\.\.\.\]/g,
+        /Others named.*/gi,
+        /View profile/gi,
+        /Join now/gi,
+        /Sign in/gi,
+        /See more/gi,
+        /View full post/gi,
+        /Follow/gi,
+        /Connect/gi,
+    ];
+
+    noisePatterns.forEach(pattern => {
+        cleaned = cleaned.replace(pattern, '');
+    });
+
+    // Remove duplicate consecutive lines
+    const lines = cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const uniqueLines: string[] = [];
+    for (const line of lines) {
+        if (uniqueLines.length === 0 || uniqueLines[uniqueLines.length - 1] !== line) {
+            uniqueLines.push(line);
+        }
+    }
+
+    // Re-join with proper spacing
+    cleaned = uniqueLines.join('\n\n');
+
+    // Clean up excessive whitespace
+    cleaned = cleaned.replace(/\s{3,}/g, '  ');
+
+    return cleaned.trim();
+}
+
+export function calculateRelevance(text: string, country: string, industry: string): { score: number, matchingKeywords: string[], type: string, projectLocation: string, companyLocation: string, confidence: string } {
     let score = 0;
     const matchingKeywords = new Set<string>();
     const lowerText = text.toLowerCase();
+    const lowerCountry = country.toLowerCase();
 
     const check = (keyword: string, points: number) => {
         if (lowerText.includes(keyword.toLowerCase())) {
@@ -16,37 +76,117 @@ export function calculateRelevance(text: string, country: string, industry: stri
         }
     };
 
-    check('EPC', 20);
-    check('EPCM', 15);
-    check('Project', 10);
-    check(country, 15);
-    check(industry, 10);
-    check('Tender', 10);
-    check('RFP', 10);
-    check('RFQ', 10);
-    check('Contract', 10);
-    check('Award', 10);
+    // Base topic checking
+    check('EPC', 15);
+    check('EPCM', 10);
     check('FEED', 10);
-    check('Procurement', 5);
-    check('Construction', 5);
-    check('Commissioning', 5);
-    check('Investment', 5);
-    check('CAPEX', 5);
+    check('Tender', 5);
+    check('Award', 5);
+    check(industry, 5);
+
+    let projectLocation = 'Unknown';
+    let companyLocation = 'Unknown';
+    let countryMentioned = lowerText.includes(lowerCountry);
+
+    // Regex heuristics for target country
+    const projectInCountryRegex = new RegExp(`(in\\s+\\b${lowerCountry}\\b|\\b${lowerCountry}\\b\\s+(project|plant|farm|facility|site|development)|project\\s+in\\s+\\b${lowerCountry}\\b)`, 'i');
+    const tenderInCountryRegex = new RegExp(`(tender\\s+in\\s+\\b${lowerCountry}\\b|rfp\\s+in\\s+\\b${lowerCountry}\\b|\\b${lowerCountry}\\b\\s+(tender|rfp))`, 'i');
+    const companyInCountryRegex = new RegExp(`(company\\s+in\\s+\\b${lowerCountry}\\b|based\\s+in\\s+\\b${lowerCountry}\\b|\\b${lowerCountry}\\b\\s+company)`, 'i');
+    
+    // Educational article
+    const educationalRegex = /(guide to|what is|how to|webinar|course|training|tutorial|learn about|what does epc mean|difference between)/i;
+    // Generic company page
+    const genericRegex = /(our services|contact us|we provide|years of experience|leading provider|about us|we are a)/i;
+
+    let isOutside = false;
+    let outsideCountry = '';
+
+    // Check for other countries explicitly getting the project
+    for (const c of MAJOR_COUNTRIES) {
+        if (c.toLowerCase() === lowerCountry) continue;
+        const explicitOutside = new RegExp(`(in\\s+\\b${c.toLowerCase()}\\b|\\b${c.toLowerCase()}\\b\\s+(project|plant|farm|facility|site|development)|project\\s+in\\s+\\b${c.toLowerCase()}\\b)`, 'i');
+        const companyOutside = new RegExp(`(company\\s+in\\s+\\b${c.toLowerCase()}\\b|based\\s+in\\s+\\b${c.toLowerCase()}\\b|\\b${c.toLowerCase()}\\b\\s+company)`, 'i');
+        
+        if (explicitOutside.test(lowerText)) {
+            isOutside = true;
+            outsideCountry = c;
+            // Don't break, keep evaluating so we catch everything, but outside country for project is prioritized
+        }
+        
+        if (companyOutside.test(lowerText) && companyLocation === 'Unknown') {
+            companyLocation = c;
+        }
+    }
+    
+    // Fallback: if no explicit project match, but another country is mentioned and target is NOT mentioned
+    if (!isOutside && !countryMentioned) {
+        for (const c of MAJOR_COUNTRIES) {
+            if (c.toLowerCase() === lowerCountry) continue;
+            const otherCountryMatch = new RegExp(`\\b${c.toLowerCase()}\\b`, 'i');
+            if (otherCountryMatch.test(lowerText)) {
+                isOutside = true;
+                outsideCountry = c;
+                break;
+            }
+        }
+    }
+
+    if (isOutside) {
+        score -= 40;
+        projectLocation = outsideCountry;
+        matchingKeywords.add('Outside Location');
+    } else if (projectInCountryRegex.test(lowerText)) {
+        score += 40;
+        projectLocation = country;
+        matchingKeywords.add('Target Country Project');
+    } else if (tenderInCountryRegex.test(lowerText)) {
+        score += 30;
+        projectLocation = country;
+        matchingKeywords.add('Target Country Tender');
+    } else if (countryMentioned) {
+        score += 3;
+        matchingKeywords.add(country);
+    }
+    
+    if (companyInCountryRegex.test(lowerText)) {
+        score += 15;
+        companyLocation = country;
+        matchingKeywords.add('Target Country Company');
+    }
+
+    if (educationalRegex.test(lowerText)) {
+        score -= 30;
+        matchingKeywords.add('Educational');
+    }
+
+    if (genericRegex.test(lowerText)) {
+        score -= 20;
+        matchingKeywords.add('Generic Corporate');
+    }
 
     // Determine type
     let type = 'General industry news';
-    if (lowerText.includes('tender') || lowerText.includes('rfp')) type = 'Tender / RFP';
+    if (lowerText.includes('tender') || lowerText.includes('rfp') || lowerText.includes('rfq')) type = 'Tender / RFP';
     else if (lowerText.includes('award') || lowerText.includes('contract')) type = 'Project award';
     else if (lowerText.includes('epc') && lowerText.includes('project')) type = 'EPC project';
     else if (lowerText.includes('feed')) type = 'FEED';
     else if (lowerText.includes('construction')) type = 'Construction';
 
+    // Confidence
+    let confidence = 'Low';
+    if (score >= 60) confidence = 'High';
+    else if (score >= 30) confidence = 'Medium';
+
     return { 
-        score: Math.min(score, 100), 
+        score: Math.max(Math.min(score, 100), -100), 
         matchingKeywords: Array.from(matchingKeywords), 
-        type 
+        type,
+        projectLocation,
+        companyLocation,
+        confidence
     };
 }
+
 
 export interface SearchProvider {
     search(query: string, country: string, industry: string): Promise<Omit<SearchResult, 'id' | 'searchId' | 'createdAt'>[]>;
@@ -188,12 +328,14 @@ export class TavilySearchProvider implements SearchProvider {
 
         const formattedResults: Omit<SearchResult, 'id' | 'searchId' | 'createdAt'>[] = [];
         for (const [link, item] of allResultsMap.entries()) {
-            const textToScore = `${item.title} ${item.snippet}`;
-            const { score, matchingKeywords, type } = calculateRelevance(textToScore, country, industry);
+            const cleanedSnippet = cleanLinkedInText(item.snippet);
+            const textToScore = `${item.title} ${cleanedSnippet}`;
+            const { score, matchingKeywords, type, projectLocation, companyLocation, confidence } = calculateRelevance(textToScore, country, industry);
+            
             formattedResults.push({
                 title: item.title,
                 url: item.url,
-                snippet: item.snippet,
+                snippet: cleanedSnippet,
                 date: item.date,
                 author: item.author,
                 company: item.company,
@@ -201,7 +343,10 @@ export class TavilySearchProvider implements SearchProvider {
                 matchingKeywords: matchingKeywords.join(' · '),
                 relevanceScore: score,
                 resultType: type,
-                isDemo: false,
+                projectLocation,
+                companyLocation,
+                confidence,
+                isDemo: item.isDemo || false,
                 searchQueries: item.queriesMatched
             });
         }
@@ -285,12 +430,14 @@ export class SerperSearchProvider implements SearchProvider {
 
         const formattedResults: Omit<SearchResult, 'id' | 'searchId' | 'createdAt'>[] = [];
         for (const [link, item] of allResultsMap.entries()) {
-            const textToScore = `${item.title} ${item.snippet}`;
-            const { score, matchingKeywords, type } = calculateRelevance(textToScore, country, industry);
+            const cleanedSnippet = cleanLinkedInText(item.snippet);
+            const textToScore = `${item.title} ${cleanedSnippet}`;
+            const { score, matchingKeywords, type, projectLocation, companyLocation, confidence } = calculateRelevance(textToScore, country, industry);
+            
             formattedResults.push({
                 title: item.title,
                 url: item.url,
-                snippet: item.snippet,
+                snippet: cleanedSnippet,
                 date: item.date,
                 author: item.author,
                 company: item.company,
@@ -298,7 +445,10 @@ export class SerperSearchProvider implements SearchProvider {
                 matchingKeywords: matchingKeywords.join(' · '),
                 relevanceScore: score,
                 resultType: type,
-                isDemo: false,
+                projectLocation,
+                companyLocation,
+                confidence,
+                isDemo: item.isDemo || false,
                 searchQueries: item.queriesMatched
             });
         }
@@ -376,15 +526,15 @@ export class GoogleSearchProvider implements SearchProvider {
         }
 
         const formattedResults: Omit<SearchResult, 'id' | 'searchId' | 'createdAt'>[] = [];
-
         for (const [link, item] of allResultsMap.entries()) {
-            const textToScore = `${item.title} ${item.snippet}`;
-            const { score, matchingKeywords, type } = calculateRelevance(textToScore, country, industry);
+            const cleanedSnippet = cleanLinkedInText(item.snippet);
+            const textToScore = `${item.title} ${cleanedSnippet}`;
+            const { score, matchingKeywords, type, projectLocation, companyLocation, confidence } = calculateRelevance(textToScore, country, industry);
             
             formattedResults.push({
                 title: item.title,
                 url: item.url,
-                snippet: item.snippet,
+                snippet: cleanedSnippet,
                 date: item.date,
                 author: item.author,
                 company: item.company,
@@ -392,7 +542,10 @@ export class GoogleSearchProvider implements SearchProvider {
                 matchingKeywords: matchingKeywords.join(' · '),
                 relevanceScore: score,
                 resultType: type,
-                isDemo: false,
+                projectLocation,
+                companyLocation,
+                confidence,
+                isDemo: item.isDemo || false,
                 searchQueries: item.queriesMatched
             });
         }

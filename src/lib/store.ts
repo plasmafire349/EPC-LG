@@ -13,6 +13,9 @@ export type SearchResult = {
   matchingKeywords: string;
   relevanceScore: number;
   resultType: string;
+  projectLocation?: string;
+  companyLocation?: string;
+  confidence?: string;
   isDemo: boolean;
   searchQueries?: string[];
   createdAt: string;
@@ -55,6 +58,9 @@ function toDbSearchResult(r: SearchResult) {
     matching_keywords: r.matchingKeywords,
     relevance_score: r.relevanceScore,
     result_type: r.resultType,
+    project_location: r.projectLocation,
+    company_location: r.companyLocation,
+    confidence: r.confidence,
     is_demo: r.isDemo,
     search_queries: r.searchQueries,
     created_at: r.createdAt
@@ -75,6 +81,9 @@ function fromDbSearchResult(row: any): SearchResult {
     matchingKeywords: row.matching_keywords,
     relevanceScore: row.relevance_score,
     resultType: row.result_type,
+    projectLocation: row.project_location,
+    companyLocation: row.company_location,
+    confidence: row.confidence,
     isDemo: row.is_demo,
     searchQueries: row.search_queries,
     createdAt: row.created_at
