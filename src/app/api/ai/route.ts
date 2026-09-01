@@ -77,8 +77,8 @@ Generate exactly three responses based on this post:
     } catch (error) {
         console.error('Gemini error:', error);
         return NextResponse.json({ 
-            error: 'Gemini request failed',
-            message: 'Please try again.'
+            error: 'AI temporarily unavailable.',
+            message: 'Please try again in a moment.'
         }, { status: 500 });
     }
 }

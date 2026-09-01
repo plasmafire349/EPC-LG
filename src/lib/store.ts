@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { cleanLinkedInText } from './searchProvider';
 
 export type SearchResult = {
   id: string;
@@ -103,6 +104,43 @@ export async function addSearchResults(results: SearchResult[]) {
 
 export async function saveResult(searchResultId: string) {
     ensureSupabase();
+    
+    // 1. Fetch the search result to see if we need to extract better content
+    const { data: sr, error: srErr } = await supabase!
+        .from('search_results')
+        .select('url, snippet')
+        .eq('id', searchResultId)
+        .maybeSingle();
+
+    if (sr && sr.url && process.env.TAVILY_API_KEY) {
+        try {
+            // Try to extract full content
+            const extractRes = await fetch('https://api.tavily.com/extract', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ api_key: process.env.TAVILY_API_KEY, urls: [sr.url] })
+            });
+            const extractData = await extractRes.json();
+            
+            if (extractData.results && extractData.results[0] && extractData.results[0].raw_content) {
+                const rawContent = extractData.results[0].raw_content;
+                // Only use it if it's significantly better or we just clean and use it
+                const cleanedContent = cleanLinkedInText(rawContent);
+                
+                // If it looks like we got substantial content, update the snippet in DB
+                if (cleanedContent && cleanedContent.length > sr.snippet.length) {
+                    await supabase!
+                        .from('search_results')
+                        .update({ snippet: cleanedContent })
+                        .eq('id', searchResultId);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to extract full content from Tavily:', e);
+        }
+    }
+
+    // 2. Save it
     const { data, error: fetchErr } = await supabase!
         .from('saved_results')
         .select('id')

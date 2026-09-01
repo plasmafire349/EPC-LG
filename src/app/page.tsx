@@ -5,7 +5,7 @@ import {
   Search, Bookmark, Clock, Bell, Settings, ChevronRight,
   ExternalLink, X, Copy, RefreshCw, TrendingUp, AlertCircle,
   CheckCircle2, ArrowRight, Zap, Menu, BarChart3, Eye,
-  Sparkles, Filter, BookmarkPlus, Trash2, RotateCcw
+  Sparkles, Filter, BookmarkPlus, Trash2, RotateCcw, Check
 } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -217,7 +217,7 @@ export default function Page() {
       setAiResponses(prev => ({ ...prev, [result.id]: data }));
     } catch (e) {
       console.error(e);
-      setAiResponses(prev => ({ ...prev, [result.id]: { error: 'Gemini request failed', message: 'Please try again.' } }));
+      setAiResponses(prev => ({ ...prev, [result.id]: { error: 'AI temporarily unavailable.', message: 'Please try again in a moment.' } }));
     }
     setLoadingAi(null);
   };
@@ -733,7 +733,7 @@ export default function Page() {
                                   <AlertCircle size={24} className="mx-auto text-red-400 mb-2" />
                                   <p className="text-sm font-semibold text-red-800 mb-1">{aiResponses[result.id].error}</p>
                                   <p className="text-sm text-red-600 mb-3">{aiResponses[result.id].message}</p>
-                                  {aiResponses[result.id].error === 'Gemini request failed' && (
+                                  {aiResponses[result.id].error && (
                                     <button onClick={() => handleAskAi(result)} className="text-sm bg-red-100 hover:bg-red-200 text-red-800 font-medium py-2 px-5 rounded-lg transition-colors">Try again</button>
                                   )}
                                 </div>
@@ -834,9 +834,53 @@ export default function Page() {
                             <span className="text-slate-200">|</span>
                             <button onClick={() => handleRemoveSaved(r.id)} className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-red-500"><Trash2 size={13} /> Remove</button>
                             <span className="text-slate-200">|</span>
-                            <button onClick={() => { handleAskAi(r); setActiveTab('search'); setSelectedResult(r); }} className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 font-medium"><Sparkles size={13} /> Ask AI</button>
+                            <button onClick={() => { handleAskAi(r); }} disabled={loadingAi === r.id} className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 font-medium disabled:opacity-50"><Sparkles size={13} /> {loadingAi === r.id ? 'Thinking...' : 'Ask AI'}</button>
                           </div>
-                        </div>
+                        
+                          {/* AI Response Panel */}
+                          {aiResponses[r.id] && (
+                            <div className="border-t border-slate-200 p-5 sm:p-6 bg-blue-50/30">
+                              <div className="flex items-center justify-between mb-1">
+                                <h5 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                  <Sparkles size={14} className="text-blue-600" /> Response assistant
+                                </h5>
+                                <button onClick={() => setAiResponses(prev => { const next = { ...prev }; delete next[r.id]; return next; })} className="text-slate-400 hover:text-slate-600">
+                                  <X size={16} />
+                                </button>
+                              </div>
+                              <p className="text-xs text-slate-500 mb-4">Draft a response based only on the available public signal. AI is used only for drafting your response.</p>
+
+                              {aiResponses[r.id].error ? (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-5 text-center">
+                                  <AlertCircle size={24} className="mx-auto text-red-400 mb-2" />
+                                  <p className="text-sm font-semibold text-red-800 mb-1">{aiResponses[r.id].error}</p>
+                                  <p className="text-sm text-red-600 mb-3">{aiResponses[r.id].message}</p>
+                                  {aiResponses[r.id].error && (
+                                    <button onClick={() => handleAskAi(r)} className="text-sm bg-red-100 hover:bg-red-200 text-red-800 font-medium py-2 px-5 rounded-lg transition-colors">Try again</button>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    {[
+                                      { key: 'professional', label: 'Professional' },
+                                      { key: 'businessDevelopment', label: 'Business Development' },
+                                      { key: 'short', label: 'Short' },
+                                    ].map(({ key, label }) => (
+                                      <div key={key} className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col">
+                                        <h6 className="text-sm font-semibold text-slate-800 mb-2">{label}</h6>
+                                        <p className="text-sm text-slate-700 leading-relaxed flex-1 mb-3">{aiResponses[r.id][key]}</p>
+                                        <button onClick={() => handleCopy(aiResponses[r.id][key], `${r.id}-${key}`)} className="mt-auto inline-flex items-center justify-center gap-2 w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md text-sm font-medium text-slate-600 transition-colors">
+                                          {copiedId === `${r.id}-${key}` ? <><Check size={14} className="text-emerald-500" /> Copied</> : <><Copy size={14} /> Copy</>}
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+</div>
                       );
                     })}
                   </div>
