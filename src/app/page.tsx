@@ -109,17 +109,7 @@ export default function Page() {
   const [searchHistory, setSearchHistory] = useState<any[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [expandedSnippets, setExpandedSnippets] = useState<Set<string>>(new Set());
 
-  const toggleSnippet = (id: string, e: any) => {
-    e.stopPropagation(); // prevent triggering the card click if it's inside one
-    setExpandedSnippets(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   // --- Data Fetching ---
   const fetchSaved = useCallback(async () => {
@@ -639,19 +629,7 @@ export default function Page() {
                                 {/* Commercial signal */}
                                 <p className="text-sm text-slate-500 mb-3">{signal}</p>
                                 {/* Snippet */}
-                                <div className="mt-1">
-                                  <p className={`text-sm text-slate-600 leading-relaxed ${expandedSnippets.has(result.id) ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
-                                    {result.snippet}
-                                  </p>
-                                  {result.snippet && result.snippet.length > 140 && (
-                                    <button 
-                                      onClick={(e) => toggleSnippet(result.id, e)} 
-                                      className="text-blue-600 text-xs font-semibold mt-1.5 hover:underline focus:outline-none"
-                                    >
-                                      {expandedSnippets.has(result.id) ? 'Show less' : 'Show more'}
-                                    </button>
-                                  )}
-                                </div>
+                                <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">{result.snippet}</p>
                               </div>
                               {/* Relevance */}
                               <div className="flex-shrink-0 text-right hidden sm:block">
@@ -844,19 +822,7 @@ export default function Page() {
                                   <span className="text-xs text-slate-400 ml-auto">Saved {new Date(saved.createdAt).toLocaleDateString()}</span>
                               </div>
                               <h4 className="text-base font-semibold text-slate-900 leading-snug mb-1">{r.title}</h4>
-                              <div className="mt-1">
-                                <p className={`text-sm text-slate-500 ${expandedSnippets.has(r.id) ? 'whitespace-pre-wrap' : 'line-clamp-2'}`}>
-                                  {r.snippet}
-                                </p>
-                                {r.snippet && r.snippet.length > 140 && (
-                                  <button 
-                                    onClick={(e) => toggleSnippet(r.id, e)} 
-                                    className="text-blue-600 text-xs font-semibold mt-1.5 hover:underline focus:outline-none"
-                                  >
-                                    {expandedSnippets.has(r.id) ? 'Show less' : 'Show more'}
-                                  </button>
-                                )}
-                              </div>
+                              <p className="text-sm text-slate-500 line-clamp-2">{r.snippet}</p>
                             </div>
                             <div className="text-right flex-shrink-0">
                               <div className={`text-2xl font-bold ${rel.color}`}>{r.relevanceScore}</div>
