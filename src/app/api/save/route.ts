@@ -7,9 +7,9 @@ export async function POST(req: Request) {
         const { searchResultId, action } = body;
 
         if (action === 'save') {
-            saveResult(searchResultId);
+            await saveResult(searchResultId);
         } else if (action === 'dismiss') {
-            dismissResult(searchResultId);
+            await dismissResult(searchResultId);
         }
 
         return NextResponse.json({ success: true });
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
 export async function GET() {
     try {
-        const results = getSavedResults();
+        const results = await getSavedResults();
         return NextResponse.json(results);
     } catch (error) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

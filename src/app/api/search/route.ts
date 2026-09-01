@@ -22,8 +22,9 @@ export async function POST(req: Request) {
             createdAt: new Date().toISOString()
         }));
 
-        addSearchResults(results);
-        addSearchHistory({ query, country, industry, resultsCount: results.length });
+        // Now async with Supabase
+        await addSearchResults(results);
+        await addSearchHistory({ query, country, industry, resultsCount: results.length });
 
         return NextResponse.json({ searchId, results, providerUsed });
     } catch (error) {
